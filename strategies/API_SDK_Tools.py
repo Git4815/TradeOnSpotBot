@@ -50,12 +50,12 @@ async def get_balance_sdk(client: Spot, retries: int = 3, delay: float = 2.0):
 async def place_order_sdk(client: Spot, symbol: str, side: str, quantity: float, price: float):
     """Place an order using SDK."""
     try:
-        # Try minimal parameters based on SDK inspection
+        # Try 'qty' as per MEXC API REST documentation
         order = client.new_order(
             symbol=symbol,
             side="BUY" if side == "buy" else "SELL",
             order_type="LIMIT",
-            quantity=str(quantity),  # Convert to string to match API
+            qty=str(quantity),  # Use 'qty' and convert to string
             price=str(price)
         )
         logger.info(f"Order placed: {order}")

@@ -1,7 +1,15 @@
 import logging
 from mexc_sdk import Spot
+import pkg_resources
 
 logger = logging.getLogger(__name__)
+
+# Log MEXC SDK version
+try:
+    sdk_version = pkg_resources.get_distribution("mexc-sdk").version
+    logger.info(f"MEXC SDK version: {sdk_version}")
+except Exception as e:
+    logger.warning(f"Could not determine MEXC SDK version: {e}")
 
 async def get_klines_sdk(client: Spot, symbol: str, interval: str, limit: int = 50):
     """Fetch Klines using SDK."""
@@ -24,15 +32,20 @@ async def get_klines_sdk(client: Spot, symbol: str, interval: str, limit: int = 
         logger.error(f"SDK Klines error: {e}")
         return None
 
-async def get_balance_sdk(client: Spot):
-    """Fetch account balances using SDK."""
-    try:
-        account = client.account_info()
-        balances = account.get("balances", [])
-        return {asset["asset"]: float(asset["free"]) for asset in balances if float(asset["free"]) > 0}
-    except Exception as e:
-        logger.error(f"SDK balance error: {e}")
-        return {}
+async def get_balance_sdk(client: Spot, retries: int = 3, delay: float = 1.0):
+    """Fetch account balances using SDK with retry logic."""
+    import asyncio
+    for attempt in range(retries):
+        try:
+            account = client.account_info()
+            balances = account.get("balances", [])
+            return {asset["asset"]: float(asset["free"]) for asset in balances if float(asset["free"]) > 0}
+        except Exception as e:
+            logger.error(f"SDK balance error (attempt {attempt + 1}/{retries}): {e}")
+            if attempt < retries - 1:
+                await asyncio.sleep(delay)
+    logger.error("Failed to fetch balances after retries")
+    return {}
 
 async def place_order_sdk(client: Spot, symbol: str, side: str, quantity: float, price: float):
     """Place an order using SDK."""
@@ -41,7 +54,7 @@ async def place_order_sdk(client: Spot, symbol: str, side: str, quantity: float,
             symbol=symbol,
             side="BUY" if side == "buy" else "SELL",
             order_type="LIMIT",
-            origQty=quantity,
+            quantity=quantity,  # Revert to quantity as per SDK inspection
             price=price
         )
         return order.get("orderId")

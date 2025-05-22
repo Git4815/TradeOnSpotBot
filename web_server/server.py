@@ -33,11 +33,16 @@ def get_latest_chart():
 @app.route("/logs/<path:filename>")
 def serve_logs(filename):
     """Serve files from logs/ directory."""
-    return send_from_directory("logs", filename)
+    try:
+        return send_from_directory(Path("logs"), filename)
+    except Exception as e:
+        logger.error(f"Error serving file {filename}: {e}")
+        return "File not found", 404
 
 @app.route("/")
 def index():
     """Render the dashboard."""
+    global config
     chart_path = get_latest_chart()
     chart_url = f"/logs/{chart_path[len('logs/'):]}" if chart_path else None
     system_status = f"Telegram Ban Until: {datetime.fromtimestamp(config.TELEGRAM_BAN) if config.TELEGRAM_BAN > time.time() else 'Not banned'}"

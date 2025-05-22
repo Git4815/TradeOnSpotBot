@@ -32,7 +32,7 @@ async def get_klines_sdk(client: Spot, symbol: str, interval: str, limit: int = 
         logger.error(f"SDK Klines error: {e}")
         return None
 
-async def get_balance_sdk(client: Spot, retries: int = 3, delay: float = 1.0):
+async def get_balance_sdk(client: Spot, retries: int = 3, delay: float = 2.0):
     """Fetch account balances using SDK with retry logic."""
     import asyncio
     for attempt in range(retries):
@@ -41,7 +41,7 @@ async def get_balance_sdk(client: Spot, retries: int = 3, delay: float = 1.0):
             balances = account.get("balances", [])
             return {asset["asset"]: float(asset["free"]) for asset in balances if float(asset["free"]) > 0}
         except Exception as e:
-            logger.error(f"SDK balance error (attempt {attempt + 1}/{retries}): {e}")
+            logger.error(f"SDK balance error (attempt {attempt + 1}/{retries}): {str(e)}")
             if attempt < retries - 1:
                 await asyncio.sleep(delay)
     logger.error("Failed to fetch balances after retries")
@@ -50,16 +50,18 @@ async def get_balance_sdk(client: Spot, retries: int = 3, delay: float = 1.0):
 async def place_order_sdk(client: Spot, symbol: str, side: str, quantity: float, price: float):
     """Place an order using SDK."""
     try:
+        # Try minimal parameters based on SDK inspection
         order = client.new_order(
             symbol=symbol,
             side="BUY" if side == "buy" else "SELL",
             order_type="LIMIT",
-            quantity=quantity,  # Revert to quantity as per SDK inspection
-            price=price
+            quantity=str(quantity),  # Convert to string to match API
+            price=str(price)
         )
+        logger.info(f"Order placed: {order}")
         return order.get("orderId")
     except Exception as e:
-        logger.error(f"SDK order error: {e}")
+        logger.error(f"SDK order error: {str(e)}")
         return None
 
 async def query_open_orders_sdk(client: Spot, symbol: str):

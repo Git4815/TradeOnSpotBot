@@ -1,4 +1,30 @@
-### MEXC SDK 1.0.0 Python docunentation:
+# Strategies
+
+This directory contains the trading strategies and API interaction logic for the TradeOnSpotBot.
+
+## MEXC SDK 1.0.0 Python Documentation
+
+The bot uses the `mexc-sdk` Python library to interact with the MEXC exchange. Below are key methods used:
+
+- **Spot Client Methods**:
+  - `klines(symbol, interval, limit)`: Fetches Kline/candlestick data.
+  - `account_info()`: Retrieves account balance information.
+  - `open_orders(symbol)`: Queries open orders for a symbol.
+  - `new_order(symbol, side, order_type, qty, price)`: Places a new order.
+  - `cancel_order(symbol, order_id)`: Cancels an order.
+
+For full documentation, refer to the [MEXC API Docs](https://mexcdevelop.github.io/apidocs/spot_v3/en/) or the `mexc-sdk` PyPI page.
+
+## Files
+
+- `API_SDK_Tools.py`: SDK-based API calls.
+- `API_Requests.py`: HTTP-based API calls (placeholders).
+- `feeder.py`: Manages API interactions, preferring HTTP over SDK.
+- `scanner.py`: Selects trading strategies based on Kline spread.
+- `high_spread_004/`: High-spread strategy (max 3 orders).
+- `low_spread_001/`: Low-spread strategy (max 1 order).
+
+### MEXC SDK 1.0.0 Python code commands
 
 ['__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', 
 '__format__', '__ge__', '__getattribute__', '__getstate__', '__gt__', 

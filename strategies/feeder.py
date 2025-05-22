@@ -19,7 +19,13 @@ class Feeder:
     async def get_balances(self):
         """Fetch balances, preferring HTTP."""
         result = await get_balance_http(self.config)
-        return result if result else await get_balance_sdk(self.client)
+        if result is None:
+            try:
+                result = await get_balance_sdk(self.client)
+            except Exception as e:
+                logger.error(f"Failed to fetch balances: {e}")
+                result = {}
+        return result
 
     async def place_order(self, symbol: str, side: str, quantity: float, price: float):
         """Place order, preferring HTTP."""
@@ -29,7 +35,13 @@ class Feeder:
     async def query_open_orders(self, symbol: str):
         """Query open orders, preferring HTTP."""
         result = await query_open_orders_http(self.config, symbol)
-        return result if result else await query_open_orders_sdk(self.client, symbol)
+        if result is None:
+            try:
+                result = await query_open_orders_sdk(self.client, symbol)
+            except Exception as e:
+                logger.error(f"Failed to query open orders: {e}")
+                result = []
+        return result
 
     async def cancel_order(self, symbol: str, order_id: str):
         """Cancel order, preferring HTTP."""

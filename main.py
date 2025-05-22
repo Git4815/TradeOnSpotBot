@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from datetime import datetime
 import time
 from pathlib import Path
@@ -9,10 +10,15 @@ from plot import generate_and_send_plot
 from config import Config
 from web_server.server import app
 
+# Ensure logs/ directory exists
+log_dir = "logs"
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler("logs/main.log"), logging.StreamHandler()]
+    handlers=[logging.FileHandler(os.path.join(log_dir, "main.log")), logging.StreamHandler()]
 )
 logger = logging.getLogger(__name__)
 

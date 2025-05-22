@@ -6,17 +6,17 @@ logger = logging.getLogger(__name__)
 async def get_klines_sdk(client: Spot, symbol: str, interval: str, limit: int = 50):
     """Fetch Klines using SDK."""
     try:
-        klines = client.get_kline(symbol, interval, limit=limit)
+        klines = client.klines(symbol=symbol, interval=interval, limit=limit)
         return {
-            "timestamp": klines[0]["time"],
+            "timestamp": klines[0][0],
             "klines": [[
-                k["time"],
-                k["open"],
-                k["high"],
-                k["low"],
-                k["close"],
-                k["volume"],
-                k["closeTime"],
+                k[0],  # time
+                k[1],  # open
+                k[2],  # high
+                k[3],  # low
+                k[4],  # close
+                k[5],  # volume
+                k[6],  # closeTime
                 symbol
             ] for k in klines]
         }
@@ -27,7 +27,7 @@ async def get_klines_sdk(client: Spot, symbol: str, interval: str, limit: int = 
 async def get_balance_sdk(client: Spot):
     """Fetch account balances using SDK."""
     try:
-        account = client.get_account_info()
+        account = client.account_info()
         balances = account.get("balances", [])
         return {asset["asset"]: float(asset["free"]) for asset in balances if float(asset["free"]) > 0}
     except Exception as e:
@@ -40,8 +40,8 @@ async def place_order_sdk(client: Spot, symbol: str, side: str, quantity: float,
         order = client.new_order(
             symbol=symbol,
             side="BUY" if side == "buy" else "SELL",
-            order_type="LIMIT",
-            quantity=quantity,
+            type="LIMIT",
+            qty=quantity,
             price=price
         )
         return order.get("orderId")
@@ -52,7 +52,7 @@ async def place_order_sdk(client: Spot, symbol: str, side: str, quantity: float,
 async def query_open_orders_sdk(client: Spot, symbol: str):
     """Query open orders using SDK."""
     try:
-        orders = client.get_open_orders(symbol)
+        orders = client.open_orders(symbol)
         return [
             {
                 "order_id": order["orderId"],

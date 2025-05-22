@@ -13,6 +13,10 @@ async def manage_orders(strategy, feeder: Feeder, config: Config, dynamic_dir: P
         balances = await feeder.get_balances()
         available_usdt = balances.get("USDT", 0)
 
+        if not balances:
+            logger.warning("Balances not available, skipping order management")
+            return False
+
         open_value = sum(float(o["quantity"]) * float(o["price"]) for o in open_orders if o["side"] == "buy")
         total_usdt = available_usdt + open_value
 
@@ -28,7 +32,7 @@ async def manage_orders(strategy, feeder: Feeder, config: Config, dynamic_dir: P
             open_orders = open_orders[:3]
 
         current_quantities = sorted([float(o["quantity"]) for o in open_orders if o["side"] == "buy"])
-        desired_quantities = sorted([d["quantity"] for d in desired_orders[:3]])
+        desired_quantities = sorted([d["quantity"] for d in desired_orders[:3] if d["quantity"] > 0])
 
         if current_quantities != desired_quantities:
             logger.info("Mismatched orders, canceling all")
@@ -37,16 +41,16 @@ async def manage_orders(strategy, feeder: Feeder, config: Config, dynamic_dir: P
             open_orders = []
             available_usdt = (await feeder.get_balances()).get("USDT", 0)
             for order in desired_orders[:3]:
-                if order["quantity"] <= available_usdt:
+                if order["quantity"] > 0 and order["quantity"] * order["price"] <= available_usdt:
                     order_id = await feeder.place_order(config.SYMBOL, order["side"], order["quantity"], order["price"])
                     if order_id:
                         open_orders.append({"order_id": order_id, "side": order["side"], "quantity": order["quantity"], "price": order["price"]})
-                        available_usdt -= order["quantity"]
+                        available_usdt -= order["quantity"] * order["price"]
                         logger.info(f"Placed order: {order}")
                     else:
                         logger.warning(f"Failed to place order: {order}")
                 else:
-                    logger.warning(f"Insufficient USDT for order: {order['quantity']}")
+                    logger.warning(f"Skipping order: quantity {order['quantity']} invalid or insufficient USDT {available_usdt}")
 
         order_log = dynamic_dir / "order_log.json"
         order_log.parent.mkdir(parents=True, exist_ok=True)

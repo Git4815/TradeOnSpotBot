@@ -13,6 +13,10 @@ async def manage_orders(strategy, feeder: Feeder, config: Config, dynamic_dir: P
         balances = await feeder.get_balances()
         available_usdt = balances.get("USDT", 0)
 
+        if not balances:
+            logger.warning("Balances not available, skipping order management")
+            return False
+
         open_value = sum(float(o["quantity"]) * float(o["price"]) for o in open_orders if o["side"] == "buy")
         total_usdt = available_usdt + open_value
 
@@ -30,7 +34,7 @@ async def manage_orders(strategy, feeder: Feeder, config: Config, dynamic_dir: P
                 await feeder.cancel_order(config.SYMBOL, order["order_id"])
             open_orders = []
             available_usdt = (await feeder.get_balances()).get("USDT", 0)
-            if desired_order["quantity"] <= available_usdt:
+            if desired_order["quantity"] > 0 and desired_order["quantity"] * desired_order["price"] <= available_usdt:
                 order_id = await feeder.place_order(config.SYMBOL, desired_order["side"], desired_order["quantity"], desired_order["price"])
                 if order_id:
                     open_orders = [{"order_id": order_id, "side": desired_order["side"], "quantity": desired_order["quantity"], "price": desired_order["price"]}]
@@ -39,7 +43,7 @@ async def manage_orders(strategy, feeder: Feeder, config: Config, dynamic_dir: P
                     open_orders = []
                     logger.warning(f"Failed to place order: {desired_order}")
             else:
-                logger.warning(f"Insufficient USDT for order: {desired_order['quantity']}")
+                logger.warning(f"Skipping order: quantity {desired_order['quantity']} invalid or insufficient USDT {available_usdt}")
 
         order_log = dynamic_dir / "order_log.json"
         order_log.parent.mkdir(parents=True, exist_ok=True)

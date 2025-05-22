@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TradeOnSpotBot Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>TradeOnSpotBot Dashboard</h1>
+    <h2>Spread Status</h2>
+    <p>{{ spread_status }}</p>
+    <h2>Order Status</h2>
+    <p>{{ order_status }}</p>
+    <h2>Kline Chart</h2>
+    {% if chart_path %}
+        <img src="/static/{{ chart_path }}" alt="Kline Chart">
+    {% else %}
+        <p>No chart available</p>
+    {% endif %}
+    <h2>System Status</h2>
+    <p>{{ system_status }}</p>
+    <p><strong>Current Time:</strong> {{ current_time }}</p>
+</body>
+</html>

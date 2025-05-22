@@ -1,0 +1,14 @@
+# Sensitive files
+config.py
+
+# Logs and dynamic data
+logs/
+strategies/klines/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment
+.env
+*.log

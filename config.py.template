@@ -1,0 +1,10 @@
+class Config:
+    def __init__(self):
+        self.SYMBOL = "USD1USDT"
+        self.INTERVAL = "1m"
+        self.CHECK_INTERVAL = 0.5  # seconds
+        self.TG_BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
+        self.TG_USER_ID = "YOUR_TELEGRAM_USER_ID"
+        self.API_KEY = "YOUR_MEXC_API_KEY"
+        self.API_SECRET = "YOUR_MEXC_API_SECRET"
+        self.TELEGRAM_BAN = 0  # Timestamp for Telegram ban

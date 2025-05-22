@@ -1,5 +1,6 @@
 # Sensitive files
 config.py
+test.py
 
 # Logs and dynamic data
 logs/

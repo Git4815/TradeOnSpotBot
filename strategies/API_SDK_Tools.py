@@ -41,7 +41,7 @@ async def place_order_sdk(client: Spot, symbol: str, side: str, quantity: float,
             symbol=symbol,
             side="BUY" if side == "buy" else "SELL",
             order_type="LIMIT",
-            qty=quantity,
+            quantity=quantity,
             price=price
         )
         return order.get("orderId")

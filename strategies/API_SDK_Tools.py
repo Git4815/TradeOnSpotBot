@@ -15,6 +15,7 @@ async def get_klines_sdk(client: Spot, symbol: str, interval: str, limit: int = 
     """Fetch Klines using SDK."""
     try:
         klines = client.klines(symbol=symbol, interval=interval, limit=limit)
+        logger.info(f"Fetched {len(klines)} klines for {symbol}")
         return {
             "timestamp": klines[0][0],
             "klines": [[
@@ -50,12 +51,12 @@ async def get_balance_sdk(client: Spot, retries: int = 3, delay: float = 2.0):
 async def place_order_sdk(client: Spot, symbol: str, side: str, quantity: float, price: float):
     """Place an order using SDK."""
     try:
-        # Try 'qty' as per MEXC API REST documentation
+        # Use keyword arguments based on MEXC API documentation
         order = client.new_order(
             symbol=symbol,
             side="BUY" if side == "buy" else "SELL",
-            order_type="LIMIT",
-            qty=str(quantity),  # Use 'qty' and convert to string
+            type="LIMIT",
+            quantity=str(quantity),
             price=str(price)
         )
         logger.info(f"Order placed: {order}")

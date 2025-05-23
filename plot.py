@@ -14,11 +14,10 @@ from mexc_sdk import Spot
 
 logger = logging.getLogger(__name__)
 
-async def fetch_orders(config):
+async def fetch_orders(client):
     """Fetch open and executed orders from MEXC SDK."""
     try:
-        client = Spot(api_key=config.MEXC_API_KEY, api_secret=config.MEXC_API_SECRET)
-        symbol = config.SYMBOL
+        symbol = "USD1USDT"  # Default symbol
 
         # Fetch open orders
         open_orders = await client.open_orders(symbol)
@@ -51,25 +50,35 @@ async def fetch_orders(config):
 async def generate_and_send_plot(feeder, config, dynamic_dir: Path):
     """Generate OHLC candlestick chart with volume and order markers."""
     klines_result = await feeder.get_klines()
-    if not klines_result or "timestamp" not in klines_result:
+    if not klines_result or "timestamp" not in klines_result or not klines_result["klines"]:
         logger.error("No valid Klines data for plotting")
         return
 
     # Prepare data for candlestick chart
     data = []
     for kline in klines_result["klines"]:
-        data.append({
-            "time": datetime.fromtimestamp(kline[0] / 1000),
-            "open": float(kline[1]),
-            "high": float(kline[2]),
-            "low": float(kline[3]),
-            "close": float(kline[4]),
-            "volume": float(kline[5])
-        })
+        if len(kline) >= 7:  # Ensure kline has required fields
+            try:
+                data.append({
+                    "time": datetime.fromtimestamp(kline[0] / 1000),
+                    "open": float(kline[1]),
+                    "high": float(kline[2]),
+                    "low": float(kline[3]),
+                    "close": float(kline[4]),
+                    "volume": float(kline[5])
+                })
+            except (ValueError, TypeError) as e:
+                logger.error(f"Invalid kline data: {kline}, error: {e}")
+                continue
+    if len(data) < 2:
+        logger.error(f"Insufficient kline data points: {len(data)}")
+        return
     df = pd.DataFrame(data)
+    logger.info(f"Plotting {len(df)} klines from {df['time'].min()} to {df['time'].max()}")
 
-    # Fetch orders
-    open_orders, executed_orders = await fetch_orders(config)
+    # Create MEXC SDK client using config attributes
+    client = Spot(api_key=config.API_KEY, api_secret=config.API_SECRET)
+    open_orders, executed_orders = await fetch_orders(client)
 
     # Set up dark theme
     plt.style.use("dark_background")
@@ -116,9 +125,10 @@ async def generate_and_send_plot(feeder, config, dynamic_dir: Path):
                 # Green upward triangle below low
                 ax1.plot(order_time, candle["low"] - tick_offset, marker="^", color="green", markersize=10)
 
-    # X-axis: 5-minute markings
-    ax2.xaxis.set_major_locator(MinuteLocator(interval=5))
-    ax2.xaxis.set_major_formatter(DateFormatter("%H:%M"))
+    # X-axis: 5-minute markings, limit to 50-minute span
+    ax1.set_xlim(df["time"].min(), df["time"].max())
+    ax1.xaxis.set_major_locator(MinuteLocator(interval=5))
+    ax1.xaxis.set_major_formatter(DateFormatter("%H:%M"))
     plt.xticks(rotation=45)
 
     # Styling

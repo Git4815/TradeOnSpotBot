@@ -51,11 +51,11 @@ async def get_balance_sdk(client: Spot, retries: int = 3, delay: float = 2.0):
 async def place_order_sdk(client: Spot, symbol: str, side: str, quantity: float, price: float):
     """Place an order using SDK."""
     try:
-        # Use keyword arguments based on MEXC API documentation
+        # Use correct keyword 'order_type' instead of 'type'
         order = client.new_order(
             symbol=symbol,
             side="BUY" if side == "buy" else "SELL",
-            type="LIMIT",
+            order_type="LIMIT",
             quantity=str(quantity),
             price=str(price)
         )

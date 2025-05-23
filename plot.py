@@ -14,13 +14,13 @@ from mexc_sdk import Spot
 
 logger = logging.getLogger(__name__)
 
-async def fetch_orders(client):
-    """Fetch open and executed orders from MEXC SDK."""
+def fetch_orders(client):
+    """Fetch open and executed orders from MEXC SDK (synchronous)."""
     try:
         symbol = "USD1USDT"  # Default symbol
 
-        # Fetch open orders
-        open_orders = await client.open_orders(symbol)
+        # Fetch open orders (synchronous method)
+        open_orders = client.open_orders(symbol)  # No 'await' needed
         open_orders_list = [
             {
                 "price": float(order["price"]),
@@ -30,8 +30,8 @@ async def fetch_orders(client):
             for order in open_orders
         ]
 
-        # Fetch executed orders (trade history)
-        trades = await client.account_trade_list(symbol, limit=100)
+        # Fetch executed orders (trade history, synchronous method)
+        trades = client.account_trade_list(symbol, limit=100)  # No 'await' needed
         executed_orders = [
             {
                 "price": float(trade["price"]),
@@ -76,34 +76,47 @@ async def generate_and_send_plot(feeder, config, dynamic_dir: Path):
     df = pd.DataFrame(data)
     logger.info(f"Plotting {len(df)} klines from {df['time'].min()} to {df['time'].max()}")
 
+    # Validate volume data
+    if df["volume"].isnull().any() or (df["volume"] <= 0).all():
+        logger.warning("Volume data is invalid or all zeros, volume bars may not appear")
+    else:
+        logger.info(f"Volume range: {df['volume'].min()} to {df['volume'].max()}")
+
     # Create MEXC SDK client using config attributes
     client = Spot(api_key=config.API_KEY, api_secret=config.API_SECRET)
-    open_orders, executed_orders = await fetch_orders(client)
+    open_orders, executed_orders = fetch_orders(client)  # Synchronous call
 
     # Set up dark theme
     plt.style.use("dark_background")
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
 
-    # Candlestick chart
-    width = 0.0001  # Candle width in time fraction
+    # Candlestick chart (make candles 3x thicker)
+    width = 0.0001  # Base width for open/close ticks
     for idx, row in df.iterrows():
         color = "green" if row["close"] >= row["open"] else "red"
-        # Body
-        ax1.plot([row["time"], row["time"]], [row["open"], row["close"]], color=color, linewidth=2)
+        # Body (3x thicker: linewidth from 2 to 6)
+        ax1.plot([row["time"], row["time"]], [row["open"], row["close"]], color=color, linewidth=6)
         # Wicks
         ax1.plot([row["time"], row["time"]], [row["low"], row["high"]], color=color, linewidth=1)
-        # Open/Close ticks
-        ax1.plot([row["time"], row["time"] - pd.Timedelta(seconds=width)], [row["open"], row["open"]], color=color, linewidth=1)
-        ax1.plot([row["time"], row["time"] + pd.Timedelta(seconds=width)], [row["close"], row["close"]], color=color, linewidth=1)
+        # Open/Close ticks (adjust width proportionally: 0.0001 to 0.0003)
+        ax1.plot([row["time"], row["time"] - pd.Timedelta(seconds=width * 3)], [row["open"], row["open"]], color=color, linewidth=1)
+        ax1.plot([row["time"], row["time"] + pd.Timedelta(seconds=width * 3)], [row["close"], row["close"]], color=color, linewidth=1)
 
-    # Volume bars
-    ax2.bar(df["time"], df["volume"], color="gray", alpha=0.5)
+    # Volume bars (set width to span ~80% of a 1-minute interval)
+    bar_width = 0.0002  # Adjusted width for visibility (in fraction of time axis)
+    ax2.bar(df["time"], df["volume"], width=bar_width, color="gray", alpha=0.5)
 
     # Set price padding (1 tick = 0.0001 USD1)
     tick = 0.0001
     price_min = df["low"].min() - tick
     price_max = df["high"].max() + tick
     ax1.set_ylim(price_min, price_max)
+
+    # Set volume axis limits to ensure visibility
+    if df["volume"].max() > 0:
+        ax2.set_ylim(0, df["volume"].max() * 1.1)  # Add 10% padding above max volume
+    else:
+        ax2.set_ylim(0, 1)  # Default range if no volume
 
     # Plot open orders
     for order in open_orders:
